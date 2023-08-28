@@ -1,26 +1,76 @@
-import { Injectable } from '@nestjs/common';
+import { MediaRepository } from './media.repository';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateMediaDto } from './dto/create-media.dto';
 import { UpdateMediaDto } from './dto/update-media.dto';
+import { PublicationRepository } from '../publication/publication.repository';
 
 @Injectable()
-export class MediasService {
-  create(createMediaDto: CreateMediaDto) {
-    return 'This action adds a new media';
+export class MediaService {
+  constructor(
+    private readonly mediaRepository: MediaRepository,
+    private readonly publicationRepository: PublicationRepository,
+  ) {}
+
+  async create(createMediaDto: CreateMediaDto) {
+    const { title, username } = createMediaDto;
+    const existsMedia = await this.mediaRepository.getMediaWithUserAndTitle(
+      title,
+      username,
+    );
+
+    if (existsMedia) {
+      throw new ConflictException('This media already exists!');
+    }
+
+    return await this.mediaRepository.create({ title, username });
   }
 
-  findAll() {
-    return `This action returns all medias`;
+  async findAll() {
+    return await this.mediaRepository.findAll();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} media`;
+  async findOne(id: number) {
+    const media = await this.mediaRepository.findOne(id);
+    if (!media) throw new NotFoundException('Media not found!');
+
+    return media;
   }
 
-  update(id: number, updateMediaDto: UpdateMediaDto) {
-    return `This action updates a #${id} media`;
+  async update(id: number, updateMediaDto: UpdateMediaDto) {
+    const { title, username } = updateMediaDto;
+
+    const media = await this.mediaRepository.findOne(id);
+    if (!media)
+      throw new NotFoundException('Media not found, no updates were applied!');
+
+    const existsMedia = await this.mediaRepository.getMediaWithUserAndTitle(
+      title,
+      username,
+    );
+
+    if (existsMedia) {
+      throw new ConflictException('This media already exists!');
+    }
+
+    return await this.mediaRepository.update(id, { title, username });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} media`;
+  async remove(id: number) {
+    const media = await this.mediaRepository.findOne(id);
+
+    if (!media)
+      throw new NotFoundException('Media not found, no deletions were made');
+
+    const publicationsCount =
+      await this.publicationRepository.publicationCountByMediaId(media.id);
+    if (publicationsCount > 0)
+      throw new ForbiddenException('This media is linked to a publication');
+
+    return await this.mediaRepository.delete(id);
   }
 }

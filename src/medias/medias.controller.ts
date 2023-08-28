@@ -1,34 +1,51 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { MediasService } from './medias.service';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  HttpCode,
+  ParseIntPipe,
+  Put,
+} from '@nestjs/common';
+import { MediaService } from './medias.service';
 import { CreateMediaDto } from './dto/create-media.dto';
 import { UpdateMediaDto } from './dto/update-media.dto';
+import * as httpStatus from 'http-status';
 
 @Controller('medias')
-export class MediasController {
-  constructor(private readonly mediasService: MediasService) {}
+export class MediaController {
+  constructor(private readonly mediaService: MediaService) {}
 
   @Post()
+  @HttpCode(httpStatus.CREATED)
   create(@Body() createMediaDto: CreateMediaDto) {
-    return this.mediasService.create(createMediaDto);
+    return this.mediaService.create(createMediaDto);
   }
 
   @Get()
   findAll() {
-    return this.mediasService.findAll();
+    return this.mediaService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.mediasService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: string) {
+    return this.mediaService.findOne(+id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateMediaDto: UpdateMediaDto) {
-    return this.mediasService.update(+id, updateMediaDto);
+  @Put(':id')
+  @HttpCode(httpStatus.NO_CONTENT)
+  update(
+    @Param('id', ParseIntPipe) id: string,
+    @Body() updateMediaDto: UpdateMediaDto,
+  ) {
+    return this.mediaService.update(+id, updateMediaDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.mediasService.remove(+id);
+  @HttpCode(httpStatus.NO_CONTENT)
+  remove(@Param('id', ParseIntPipe) id: string) {
+    return this.mediaService.remove(+id);
   }
 }
